@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>税表番号 分類アシスタント</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --navy:    #0f2545;
+    --blue:    #1a4a8a;
+    --accent:  #2e7df7;
+    --gold:    #c8a84b;
+    --light:   #e8f0fb;
+    --white:   #ffffff;
+    --gray1:   #f4f7fc;
+    --gray2:   #dce6f5;
+    --gray3:   #8fa8cc;
+    --text:    #1a2840;
+    --success: #1db87a;
+    --radius:  14px;
+    --shadow:  0 4px 24px rgba(15,37,69,0.13);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--gray1);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* ヘッダー */
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+    padding: 20px 20px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 16px rgba(15,37,69,0.25);
+  }
+  header .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--gold);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.3;
+  }
+  header p {
+    font-size: 11px;
+    color: var(--gray3);
+    margin-top: 2px;
+  }
+
+  /* タブ */
+  .tabs {
+    display: flex;
+    background: var(--navy);
+    padding: 0 16px 12px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 8px 4px;
+    border: none;
+    background: transparent;
+    color: var(--gray3);
+    font-size: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+
+  /* コンテンツ */
+  .tab-content { display: none; padding: 16px; }
+  .tab-content.active { display: block; }
+
+  /* カード */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-title::before {
+    content: '';
+    width: 3px; height: 14px;
+    background: var(--gold);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* フォーム */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--blue);
+    margin-bottom: 6px;
+  }
+  .field label .required {
+    color: #e74c3c;
+    margin-left: 3px;
+  }
+  .field label .hint {
+    font-weight: 400;
+    color: var(--gray3);
+    margin-left: 4px;
+    font-size: 11px;
+  }
+  input[type="text"], select, textarea {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--gray2);
+    border-radius: 9px;
+    font-size: 15px;
+    font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text);
+    background: var(--gray1);
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    -webkit-appearance: none;
+  }
+  input[type="text"]:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    background: var(--white);
+  }
+  textarea { resize: none; height: 72px; line-height: 1.5; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238fa8cc' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+  /* チップ選択 */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
+  .chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1.5px solid var(--gray2);
+    background: var(--gray1);
+    font-size: 13px;
+    color: var(--gray3);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .chip.selected {
+    border-color: var(--accent);
+    background: var(--light);
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* 生成ボタン */
+  .btn-generate {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(46,125,247,0.35);
+    transition: all 0.2s;
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+  }
+  .btn-generate:active { transform: scale(0.98); opacity: 0.9; }
+
+  /* 結果エリア */
+  #result-section { display: none; }
+  .result-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--accent);
+  }
+  .result-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .prompt-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--gray1);
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  /* アクションボタン群 */
+  .action-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .btn-action {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+  .btn-action:active { transform: scale(0.98); }
+  .btn-copy {
+    background: var(--navy);
+    color: white;
+    box-shadow: 0 3px 12px rgba(15,37,69,0.2);
+  }
+  .btn-claude {
+    background: linear-gradient(135deg, #d97706, var(--gold));
+    color: white;
+    box-shadow: 0 3px 12px rgba(200,168,75,0.35);
+  }
+  .btn-reset {
+    background: var(--gray1);
+    color: var(--gray3);
+    border: 1.5px solid var(--gray2);
+  }
+
+  /* コピー完了トースト */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--success);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 4px 20px rgba(29,184,122,0.4);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* 使い方タブ */
+  .step {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 18px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-body h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .step-body p  { font-size: 13px; color: #555; line-height: 1.6; }
+
+  .info-box {
+    background: var(--light);
+    border: 1.5px solid var(--gray2);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 13px;
+    color: var(--blue);
+    line-height: 1.7;
+    margin-top: 10px;
+  }
+  .info-box strong { color: var(--navy); }
+
+  /* 履歴タブ */
+  .history-item {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 13px 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(15,37,69,0.07);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .history-item:active { background: var(--light); }
+  .history-name { font-size: 14px; font-weight: 700; }
+  .history-meta { font-size: 11px; color: var(--gray3); margin-top: 2px; }
+  .history-arrow { color: var(--gray3); font-size: 16px; }
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray3);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📦</div>
+    <div>
+      <h1>税表番号 分類アシスタント</h1>
+      <p>関税率表解説・分類例規 対応</p>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('input')">入力</button>
+  <button class="tab-btn" onclick="switchTab('history')">履歴</button>
+  <button class="tab-btn" onclick="switchTab('howto')">使い方</button>
+</div>
+
+<!-- 入力タブ -->
+<div id="tab-input" class="tab-content active">
+
+  <div class="card">
+    <div class="card-title">商品情報</div>
+
+    <div class="field">
+      <label>商品名・品名<span class="required">*</span></label>
+      <input type="text" id="f-name" placeholder="例：ステンレス製六角ボルト" />
+    </div>
+
+    <div class="field">
+      <label>取引区分<span class="required">*</span></label>
+      <div class="chips">
+        <div class="chip selected" data-group="trade" data-val="輸入" onclick="selectChip(this)">輸入</div>
+        <div class="chip" data-group="trade" data-val="輸出" onclick="selectChip(this)">輸出</div>
+        <div class="chip" data-group="trade" data-val="輸入・輸出両方" onclick="selectChip(this)">両方</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>形状・外観<span class="hint">（任意）</span></label>
+      <input type="text" id="f-shape" placeholder="例：六角頭、長さ30mm、板状" />
+    </div>
+
+    <div class="field">
+      <label>材質・成分<span class="hint">（任意）</span></label>
+      <input type="text" id="f-material" placeholder="例：ステンレス鋼SUS304、綿60%" />
+    </div>
+
+    <div class="field">
+      <label>用途・機能<span class="hint">（任意）</span></label>
+      <input type="text" id="f-usage" placeholder="例：機械部品の締結、家庭用調理器具" />
+    </div>
+
+    <div class="field">
+      <label>補足・状態<span class="hint">（任意）</span></label>
+      <textarea id="f-notes" placeholder="例：未完成品、混合物、HS番号の手がかりなど"></textarea>
+    </div>
+  </div>
+
+  <button class="btn-generate" onclick="generatePrompt()">
+    🔍 分類プロンプトを生成する
+  </button>
+
+  <!-- 結果 -->
+  <div id="result-section">
+    <div style="height:18px;"></div>
+    <div class="result-card">
+      <div class="result-label">生成されたプロンプト</div>
+      <div class="prompt-text" id="prompt-output"></div>
+    </div>
+    <div class="action-btns">
+      <button class="btn-action btn-copy" onclick="copyPrompt()">
+        📋 プロンプトをコピー
+      </button>
+      <button class="btn-action btn-claude" onclick="openClaude()">
+        🤖 Claude.aiで開く
+      </button>
+      <button class="btn-action btn-reset" onclick="resetForm()">
+        ↩ 入力をリセット
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- 履歴タブ -->
+<div id="tab-history" class="tab-content">
+  <div id="history-list"></div>
+</div>
+
+<!-- 使い方タブ -->
+<div id="tab-howto" class="tab-content">
+  <div class="card">
+    <div class="card-title">基本的な使い方</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>商品情報を入力する</h3>
+        <p>商品名は必須。形状・材質・用途を詳しく入力するほど精度が上がります。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>プロンプトを生成してコピー</h3>
+        <p>「分類プロンプトを生成する」をタップ→「プロンプトをコピー」をタップ。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Claude.aiに貼り付けて送信</h3>
+        <p>「Claude.aiで開く」をタップするとアプリが開きます。入力欄に長押しでペーストして送信。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>候補と根拠を確認する</h3>
+        <p>Claudeが3〜5件の候補番号と各分類根拠・注意点を提示します。最終判断は通関士が行ってください。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">精度を上げるコツ</div>
+    <div class="info-box">
+      <strong>✅ 効果的な入力例</strong><br>
+      材質：ステンレス鋼（SUS304）<br>
+      形状：直径10mm×長さ50mm、六角頭<br>
+      用途：自動車エンジン部品の締結用<br><br>
+      <strong>❌ 情報が少ない例</strong><br>
+      商品名「ボルト」のみ → 候補が絞り込めません<br><br>
+      <strong>💡 補足欄の活用</strong><br>
+      「未完成品」「混合物」「セット品」などの状態、
+      または「73類か84類か迷っている」など手がかりを記入すると有効です。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ホーム画面への追加方法</div>
+    <div class="info-box">
+      Safariでこのページを開いた状態で：<br><br>
+      <strong>①</strong> 画面下部の「共有」ボタン（□↑）をタップ<br>
+      <strong>②</strong>「ホーム画面に追加」をタップ<br>
+      <strong>③</strong>「追加」をタップ<br><br>
+      次回からホーム画面のアイコンで起動できます。
+    </div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast">✅ コピーしました</div>
+
+<script>
+// タブ切り替え
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// チップ選択
+function selectChip(el) {
+  const group = el.dataset.group;
+  document.querySelectorAll(`.chip[data-group="${group}"]`).forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function getSelectedChip(group) {
+  const el = document.querySelector(`.chip[data-group="${group}"].selected`);
+  return el ? el.dataset.val : '不明';
+}
+
+// プロンプト生成
+function generatePrompt() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) {
+    alert('商品名は必須です。入力してください。');
+    return;
+  }
+  const trade    = getSelectedChip('trade');
+  const shape    = document.getElementById('f-shape').value.trim()    || '未記入';
+  const material = document.getElementById('f-material').value.trim() || '未記入';
+  const usage    = document.getElementById('f-usage').value.trim()    || '未記入';
+  const notes    = document.getElementById('f-notes').value.trim()    || 'なし';
+
+  const prompt = `あなたは日本の関税率表・輸出統計品目表に精通した通関士です。
+以下の商品情報をもとに、最も妥当な税表番号（輸入）および統計番号（輸出）の候補を3〜5件挙げてください。
+各候補について分類根拠・注意点・推奨度を記載し、最後に最終判断のポイントをまとめてください。
+
+## 商品情報
+- 商品名: ${name}
+- 取引形態: ${trade}
+- 形状・外観: ${shape}
+- 材質・成分: ${material}
+- 用途・機能: ${usage}
+- 補足・状態: ${notes}
+
+## 回答形式
+### 【候補1】第XX.XX項（XXXX.XX）
+**推奨度：** ★★★★☆
+**分類根拠：** （関税率表解説・分類例規・部注・類注を根拠に説明）
+**注意点・確認事項：** （実務上の確認ポイント）
+
+（候補2〜5を同形式で）
+
+### 最終判断のポイント
+（各候補を区別する決め手となる確認事項を箇条書きで）
+
+### 参考：適用される主な注（Note）
+（関連する部注・類注・項注を列挙）`;
+
+  document.getElementById('prompt-output').textContent = prompt;
+  document.getElementById('result-section').style.display = 'block';
+
+  // 履歴保存
+  saveHistory({ name, trade, shape, material, usage, notes, prompt, date: new Date().toISOString() });
+
+  // 結果までスクロール
+  setTimeout(() => {
+    document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+  }, 100);
+}
+
+// コピー
+function copyPrompt() {
+  const text = document.getElementById('prompt-output').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(showToast);
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast();
+  }
+}
+
+function showToast() {
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// Claude.aiを開く
+function openClaude() {
+  copyPrompt();
+  setTimeout(() => {
+    window.open('https://claude.ai', '_blank');
+  }, 400);
+}
+
+// リセット
+function resetForm() {
+  ['f-name','f-shape','f-material','f-usage','f-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.querySelectorAll('.chip[data-group="trade"]').forEach(c => c.classList.remove('selected'));
+  document.querySelector('.chip[data-val="輸入"]').classList.add('selected');
+  document.getElementById('result-section').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 履歴（sessionStorage）
+function saveHistory(item) {
+  let hist = JSON.parse(sessionStorage.getItem('tariff_history') || '[]');
+  hist.unshift(item);
+  if (hist.length > 20) hist = hist.slice(0, 20);
+  sessionStorage.setItem('tariff_history', JSON.stringify(hist));
+}
+
+function renderHistory() {
+  const hist = JSON.parse(sessionStorage.getItem('tariff_history') || '[]');
+  const el = document.getElementById('history-list');
+  if (hist.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>まだ履歴がありません。<br>商品情報を入力して検索してください。</div>';
+    return;
+  }
+  el.innerHTML = hist.map((h, i) => `
+    <div class="history-item" onclick="loadHistory(${i})">
+      <div>
+        <div class="history-name">${h.name}</div>
+        <div class="history-meta">${h.trade} ｜ ${new Date(h.date).toLocaleDateString('ja-JP')} ${new Date(h.date).toLocaleTimeString('ja-JP', {hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div class="history-arrow">›</div>
+    </div>
+  `).join('');
+}
+
+function loadHistory(i) {
+  const hist = JSON.parse(sessionStorage.getItem('tariff_history') || '[]');
+  const h = hist[i];
+  document.getElementById('f-name').value     = h.name;
+  document.getElementById('f-shape').value    = h.shape !== '未記入' ? h.shape : '';
+  document.getElementById('f-material').value = h.material !== '未記入' ? h.material : '';
+  document.getElementById('f-usage').value    = h.usage !== '未記入' ? h.usage : '';
+  document.getElementById('f-notes').value    = h.notes !== 'なし' ? h.notes : '';
+  document.querySelectorAll('.chip[data-group="trade"]').forEach(c => {
+    c.classList.toggle('selected', c.dataset.val === h.trade);
+  });
+  document.getElementById('prompt-output').textContent = h.prompt;
+  document.getElementById('result-section').style.display = 'block';
+  switchTab('input');
+  document.querySelectorAll('.tab-btn')[0].classList.add('active');
+  setTimeout(() => document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' }), 150);
+}
+</script>
+
+</body>
+</html>
